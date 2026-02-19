@@ -35,6 +35,19 @@ Server listens on `PORT` (default 3000).
 
 The `api/check.js` serverless function handles **POST /api/check**. Deploy the server repo to Vercel; set **CREDENTIAL_SERVER_SEED** (and MONGO_URI if needed) in Vercel environment variables. The module sends encoded payloads to `https://your-app.vercel.app/api/check`.
 
+### Why is nothing saving to MongoDB?
+
+1. **Check config:** Open **GET https://your-app.vercel.app/api/health** in a browser. You should see JSON:
+   - `mongoConfigured: true` → MONGO_URI is set
+   - `mongoConnected: true` → MongoDB Atlas accepts connections from Vercel
+   - If `mongoError` is set, that’s the reason (e.g. "MONGO_URI not set", "querySrv ECONNREFUSED").
+
+2. **Set MONGO_URI on Vercel:** Project → Settings → Environment Variables → Add **MONGO_URI** = `mongodb+srv://user:password@cluster0.xxx.mongodb.net/` (your real URI). Redeploy.
+
+3. **Allow Vercel to reach Atlas:** MongoDB Atlas → Network Access → Add IP Address → **Allow access from anywhere** (0.0.0.0/0). Otherwise Atlas blocks Vercel’s IPs.
+
+4. **Where to look in Atlas:** Database **gnosis**, collection **checksum**. If the DB doesn’t exist yet, it is created on first insert.
+
 ## API
 
 **POST /check** or **POST /api/check**

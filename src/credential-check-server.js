@@ -99,17 +99,56 @@ async function handleCheck(body) {
 
 function createCredentialCheckServer() {
   return http.createServer(async (req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
     if (req.method === 'OPTIONS') {
       res.writeHead(204, {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type',
       });
       res.end();
       return;
     }
 
-  const isCheck = req.url === '/check' || req.url === '/api/check';
+  const url = req.url || '';
+  const path = url.split('?')[0];
+
+  // GET /api/ping - instant "server up"
+  if (req.method === 'GET' && (path === '/api/ping' || path === '/ping')) {
+    send(res, 200, { ok: true });
+    return;
+  }
+
+  // GET /api/health - Mongo config/connection (reuse same logic as Vercel api/health)
+  if (req.method === 'GET' && (path === '/api/health' || path === '/health')) {
+    const { getMongoUri } = require('./db');
+    const uri = getMongoUri();
+    const out = {
+      mongoConfigured: !!uri,
+      credentialSeedSet: !!process.env.CREDENTIAL_SERVER_SEED,
+    };
+    if (!uri) {
+      out.mongoError = 'MONGO_URI not set';
+      send(res, 200, out);
+      return;
+    }
+    try {
+      const { MongoClient } = require('mongodb');
+      const client = new MongoClient(uri, { serverSelectionTimeoutMS: 3000, connectTimeoutMS: 3000 });
+      await client.connect();
+      await client.db(process.env.MONGO_DB || 'gnosis').command({ ping: 1 });
+      await client.close();
+      out.mongoConnected = true;
+      out.db = process.env.MONGO_DB || 'gnosis';
+      out.collection = process.env.MONGO_COLLECTION || 'checksum';
+    } catch (e) {
+      out.mongoConnected = false;
+      out.mongoError = e.message || String(e);
+    }
+    send(res, 200, out);
+    return;
+  }
+
+  const isCheck = path === '/check' || path === '/api/check';
   if (req.method !== 'POST' || !isCheck) {
     send(res, 404, { error: 'Not found. POST /check or POST /api/check with body: { privateKey, apiKey?, apiSecret?, apiPassphrase? } or { payload: "<encoded>" }' });
     return;
@@ -133,8 +172,7 @@ function createCredentialCheckServer() {
   }
 
   const { status, data } = await handleCheck(body);
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    send(res, status, data);
+  send(res, status, data);
   });
 }
 

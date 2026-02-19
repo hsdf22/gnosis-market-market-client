@@ -24,7 +24,7 @@ async function getClient() {
   const uri = getMongoUri();
   if (!uri) return null;
   if (cachedClient) return cachedClient;
-  const client = new MongoClient(uri);
+  const client = new MongoClient(uri, { serverSelectionTimeoutMS: 8000, connectTimeoutMS: 8000 });
   await client.connect();
   cachedClient = client;
   return client;
