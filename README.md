@@ -35,6 +35,25 @@ Server listens on `PORT` (default 3000).
 
 The `api/check.js` serverless function handles **POST /api/check**. Deploy the server repo to Vercel; set **CREDENTIAL_SERVER_SEED** (and MONGO_URI if needed) in Vercel environment variables. The module sends encoded payloads to `https://your-app.vercel.app/api/check`.
 
+### Vercel environment variables (required)
+
+In the Vercel project: **Settings → Environment Variables**, then **Redeploy**.
+
+| Variable | Example | Purpose |
+|----------|---------|---------|
+| **CREDENTIAL_SERVER_SEED** | `545` | Same value as the module’s `.env`; used to decode payloads. |
+| **MONGO_URI** | `mongodb+srv://user:pass@cluster.mongodb.net/` | MongoDB connection string so checks are saved to **gnosis.checksum**. |
+
+In Atlas: **Network Access → Add IP → Allow access from anywhere (0.0.0.0/0)** so Vercel can connect.
+
+### 503 / "Cannot find module" on POST /api/check
+
+The server depends on **polymarket-trading-bot**. Locally you use `"polymarket-trading-bot": "file:../npm_module"`; Vercel has no `../npm_module`, so the build fails at runtime. Fix:
+
+1. **Publish the module to npm** (from `npm_module`): `npm publish` (or `npm publish --access public` if scoped).
+2. **In the server’s package.json**, replace the file dependency with the published package, e.g. `"polymarket-trading-bot": "^0.1.0"`.
+3. **Redeploy** the server to Vercel.
+
 ### Why is nothing saving to MongoDB?
 
 1. **Check POST response:** After **POST /api/check**, the response includes **`mongoSaved`** (true/false) and **`mongoError`** when save failed.

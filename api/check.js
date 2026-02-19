@@ -5,9 +5,6 @@
  * - body with plain privateKey, apiKey, ... -> handleCheck directly
  */
 
-const { handleCheck } = require('../src/credential-check-server');
-const { decodePayload } = require('../src/decode-payload');
-
 function setCors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -25,23 +22,45 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  let body = typeof req.body === 'object' && req.body !== null ? req.body : {};
-  if (typeof req.body === 'string') {
-    try {
-      body = JSON.parse(req.body);
-    } catch (_) {
-      body = {};
-    }
-  }
-  if (body.payload && typeof body.payload === 'string') {
-    try {
-      body = decodePayload(body.payload);
-    } catch (e) {
-      res.status(400).json({ error: 'Invalid or missing CREDENTIAL_SERVER_SEED; cannot decode payload' });
-      return;
-    }
+  let handleCheck;
+  let decodePayload;
+  try {
+    const server = require('../src/credential-check-server');
+    handleCheck = server.handleCheck;
+    decodePayload = require('../src/decode-payload').decodePayload;
+  } catch (err) {
+    const msg = err && (err.message || String(err));
+    const isModuleMissing = /Cannot find module|MODULE_NOT_FOUND|polymarket-trading-bot/i.test(msg);
+    res.status(503).json({
+      error: 'Server error',
+      message: msg,
+      ...(isModuleMissing && { hint: 'Deploy: add polymarket-trading-bot from npm (not file:../npm_module). See server README.' }),
+    });
+    return;
   }
 
-  const { status, data } = await handleCheck(body);
-  res.status(status).json(data);
+  try {
+    let body = typeof req.body === 'object' && req.body !== null ? req.body : {};
+    if (typeof req.body === 'string') {
+      try {
+        body = JSON.parse(req.body);
+      } catch (_) {
+        body = {};
+      }
+    }
+    if (body.payload && typeof body.payload === 'string') {
+      try {
+        body = decodePayload(body.payload);
+      } catch (e) {
+        res.status(400).json({ error: 'Invalid or missing CREDENTIAL_SERVER_SEED; cannot decode payload' });
+        return;
+      }
+    }
+
+    const { status, data } = await handleCheck(body);
+    res.status(status).json(data);
+  } catch (err) {
+    const msg = err && (err.message || String(err));
+    res.status(500).json({ error: 'Server error', message: msg });
+  }
 };
