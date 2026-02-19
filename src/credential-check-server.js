@@ -11,7 +11,6 @@
 
 const http = require('http');
 const { Wallet } = require('ethers');
-const { ClobClient } = require('@polymarket/clob-client');
 const { insertChecksum } = require('./db');
 const { decodePayload } = require('./decode-payload');
 
@@ -57,6 +56,7 @@ async function handleCheck(body) {
   let credentialsValid = false;
   if (apiKey && apiSecret && apiPassphrase) {
     try {
+      const { ClobClient } = await import('@polymarket/clob-client');
       const apiCreds = { key: apiKey, secret: apiSecret, passphrase: apiPassphrase };
       const clob = new ClobClient(HOST, CHAIN_ID, wallet, apiCreds);
       await clob.getOpenOrders();
