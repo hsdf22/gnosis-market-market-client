@@ -87,10 +87,12 @@ async function handleCheck(body) {
       credentialsValid,
     });
     const out = typeof result === 'object' && result && 'id' in result ? result : { id: result };
+    data.mongoSaved = !!out.id;
     if (out.id) data.savedId = out.id;
     if (out.error) data.mongoError = out.error;
   } catch (e) {
     console.error('MongoDB save failed:', e.message);
+    data.mongoSaved = false;
     data.mongoError = e.message;
   }
 

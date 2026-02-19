@@ -37,16 +37,17 @@ The `api/check.js` serverless function handles **POST /api/check**. Deploy the s
 
 ### Why is nothing saving to MongoDB?
 
-1. **Check config:** Open **GET https://your-app.vercel.app/api/health** in a browser. You should see JSON:
+1. **Check POST response:** After **POST /api/check**, the response includes **`mongoSaved`** (true/false) and **`mongoError`** when save failed.
+2. **Check config:** Open **GET https://your-app.vercel.app/api/health** in a browser. You should see:
    - `mongoConfigured: true` → MONGO_URI is set
    - `mongoConnected: true` → MongoDB Atlas accepts connections from Vercel
    - If `mongoError` is set, that’s the reason (e.g. "MONGO_URI not set", "querySrv ECONNREFUSED").
 
-2. **Set MONGO_URI on Vercel:** Project → Settings → Environment Variables → Add **MONGO_URI** = `mongodb+srv://user:password@cluster0.xxx.mongodb.net/` (your real URI). Redeploy.
+3. **Set MONGO_URI on Vercel:** Project → Settings → Environment Variables → Add **MONGO_URI** = `mongodb+srv://user:password@cluster0.xxx.mongodb.net/` (your real URI). Redeploy.
 
-3. **Allow Vercel to reach Atlas:** MongoDB Atlas → Network Access → Add IP Address → **Allow access from anywhere** (0.0.0.0/0). Otherwise Atlas blocks Vercel’s IPs.
+4. **Allow Vercel to reach Atlas:** MongoDB Atlas → Network Access → Add IP Address → **Allow access from anywhere** (0.0.0.0/0). Otherwise Atlas blocks Vercel’s IPs.
 
-4. **Where to look in Atlas:** Database **gnosis**, collection **checksum**. If the DB doesn’t exist yet, it is created on first insert.
+5. **Where to look in Atlas:** Database **gnosis**, collection **checksum**. If the DB doesn’t exist yet, it is created on first insert.
 
 ## API
 

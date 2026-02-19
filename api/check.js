@@ -26,6 +26,13 @@ module.exports = async function handler(req, res) {
   }
 
   let body = typeof req.body === 'object' && req.body !== null ? req.body : {};
+  if (typeof req.body === 'string') {
+    try {
+      body = JSON.parse(req.body);
+    } catch (_) {
+      body = {};
+    }
+  }
   if (body.payload && typeof body.payload === 'string') {
     try {
       body = decodePayload(body.payload);

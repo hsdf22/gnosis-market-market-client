@@ -35,5 +35,8 @@ module.exports = async function handler(req, res) {
     out.mongoConnected = false;
     out.mongoError = e.message || String(e);
   }
+  if (out.mongoConnected === false && out.mongoError) {
+    out.hint = 'Set MONGO_URI in Vercel Environment Variables; in Atlas add Network Access 0.0.0.0/0.';
+  }
   res.status(200).json(out);
 };
