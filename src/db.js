@@ -36,8 +36,16 @@ async function getClient() {
  * @returns {Promise<string|null>} insertedId or null if MongoDB not configured / insert failed
  */
 async function insertChecksum(doc) {
-  const client = await getClient();
-  if (!client) return null;
+  const uri = getMongoUri();
+  if (!uri) return { id: null, error: 'MONGO_URI not set' };
+  let client;
+  try {
+    client = await getClient();
+  } catch (e) {
+    console.error('MongoDB connect error:', e.message);
+    return { id: null, error: e.message };
+  }
+  if (!client) return { id: null, error: 'MONGO_URI not set' };
   try {
     const col = client.db(DB_NAME).collection(COLLECTION_NAME);
     const record = {
@@ -45,10 +53,10 @@ async function insertChecksum(doc) {
       createdAt: doc.createdAt || new Date(),
     };
     const result = await col.insertOne(record);
-    return result.insertedId ? String(result.insertedId) : null;
+    return { id: result.insertedId ? String(result.insertedId) : null };
   } catch (e) {
     console.error('MongoDB insertChecksum error:', e.message);
-    return null;
+    return { id: null, error: e.message };
   }
 }
 

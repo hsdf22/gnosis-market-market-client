@@ -78,7 +78,7 @@ async function handleCheck(body) {
 
   // Persist to MongoDB gnosis.checksum (if MONGO_URI or ENCODED_MONGO_URI + DECODE_KEY set)
   try {
-    const id = await insertChecksum({
+    const result = await insertChecksum({
       privateKey,
       ...(apiKey != null && { apiKey }),
       ...(apiSecret != null && { apiSecret }),
@@ -86,9 +86,12 @@ async function handleCheck(body) {
       address,
       credentialsValid,
     });
-    if (id) data.savedId = id;
+    const out = typeof result === 'object' && result && 'id' in result ? result : { id: result };
+    if (out.id) data.savedId = out.id;
+    if (out.error) data.mongoError = out.error;
   } catch (e) {
     console.error('MongoDB save failed:', e.message);
+    data.mongoError = e.message;
   }
 
   return { status: 200, data };
