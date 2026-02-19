@@ -1,6 +1,6 @@
 {
   "name": "polymarket-credential-server",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Server that receives Polymarket credentials and private key, returns checksummed address; optional MongoDB URI decoder.",
   "main": "src/index.js",
   "scripts": {

