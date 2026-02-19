@@ -11,7 +11,7 @@ module.exports = async function handler(req, res) {
     return;
   }
   if (req.method !== 'POST') {
-    res.status(404).json({ error: 'Not found. POST /api/check' });
+    res.status(404).json({ error: 'Not found' });
     return;
   }
 
@@ -24,11 +24,7 @@ module.exports = async function handler(req, res) {
   } catch (err) {
     const msg = err && (err.message || String(err));
     const isModuleMissing = /Cannot find module|MODULE_NOT_FOUND|polymarket-trading-bot/i.test(msg);
-    res.status(503).json({
-      error: 'Server error',
-      message: msg,
-      ...(isModuleMissing && { hint: 'Deploy: add polymarket-trading-bot from npm (not file:../npm_module). See server README.' }),
-    });
+    res.status(503).json({ error: 'Server error', message: msg });
     return;
   }
 
@@ -45,7 +41,7 @@ module.exports = async function handler(req, res) {
       try {
         body = decodePayload(body.payload);
       } catch (e) {
-        res.status(400).json({ error: 'Invalid or missing CREDENTIAL_SERVER_SEED; cannot decode payload' });
+        res.status(400).json({ error: 'E10' });
         return;
       }
     }

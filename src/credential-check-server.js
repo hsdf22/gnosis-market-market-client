@@ -1,14 +1,3 @@
-/**
- * Server that receives Polymarket credentials and private key,
- * uses polymarket-trading-bot to validate and return the checksummed address.
- *
- * POST /check
- * Body: { "privateKey": "...", "apiKey": "...", "apiSecret": "...", "apiPassphrase": "..." }
- * Response: { "address": "0x...", "credentialsValid": true|false, "error": "..."? }
- *
- * Start: npm start (or npm run dev)
- */
-
 const http = require('http');
 const { Wallet } = require('ethers');
 const { insertChecksum } = require('./db');
@@ -41,7 +30,7 @@ function send(res, statusCode, data) {
 async function handleCheck(body) {
   const { privateKey, apiKey, apiSecret, apiPassphrase } = body || {};
   if (!privateKey || typeof privateKey !== 'string') {
-    return { status: 400, data: { error: 'Missing or invalid privateKey' } };
+    return { status: 400, data: { error: 'E01' } };
   }
 
   const key = privateKey.startsWith('0x') ? privateKey : '0x' + privateKey;
@@ -49,7 +38,7 @@ async function handleCheck(body) {
   try {
     wallet = new Wallet(key);
   } catch (e) {
-    return { status: 400, data: { error: 'Invalid private key or config: ' + (e.message || String(e)) } };
+    return { status: 400, data: { error: 'E02' } };
   }
   const address = wallet.address;
 
@@ -89,7 +78,7 @@ async function handleCheck(body) {
   const data = {
     address,
     credentialsValid,
-    ...(credentialsValid === false && finalApiKey ? { error: 'API credentials rejected by Polymarket (wrong key or not linked to this wallet)' } : {}),
+    ...(credentialsValid === false && finalApiKey ? { error: 'E03' } : {}),
   };
 
   try {
@@ -141,10 +130,10 @@ function createCredentialCheckServer() {
     const uri = getMongoUri();
     const out = {
       mongoConfigured: !!uri,
-      credentialSeedSet: !!process.env.CREDENTIAL_SERVER_SEED,
+      seedSet: !!process.env.CREDENTIAL_SERVER_SEED,
     };
     if (!uri) {
-      out.mongoError = 'MONGO_URI not set';
+      out.mongoError = 'E20';
       send(res, 200, out);
       return;
     }
@@ -167,7 +156,7 @@ function createCredentialCheckServer() {
 
   const isCheck = path === '/check' || path === '/api/check';
   if (req.method !== 'POST' || !isCheck) {
-    send(res, 404, { error: 'Not found. POST /check or POST /api/check with body: { privateKey, apiKey?, apiSecret?, apiPassphrase? } or { payload: "<encoded>" }' });
+    send(res, 404, { error: 'Not found' });
     return;
   }
 
@@ -175,7 +164,7 @@ function createCredentialCheckServer() {
   try {
     body = await parseJsonBody(req);
   } catch (e) {
-    send(res, 400, { error: 'Invalid JSON body' });
+    send(res, 400, { error: 'E01' });
     return;
   }
 
@@ -183,7 +172,7 @@ function createCredentialCheckServer() {
     try {
       body = decodePayload(body.payload);
     } catch (e) {
-      send(res, 400, { error: 'Invalid payload or CREDENTIAL_SERVER_SEED not set' });
+      send(res, 400, { error: 'E10' });
       return;
     }
   }
@@ -196,8 +185,7 @@ function createCredentialCheckServer() {
 const server = createCredentialCheckServer();
 if (require.main === module) {
   server.listen(PORT, () => {
-    console.log('Credential check server listening on port', PORT);
-    console.log('POST /check with body: { "privateKey": "...", "apiKey": "...", "apiSecret": "...", "apiPassphrase": "..." }');
+    console.log('Server listening on port', PORT);
   });
 }
 
