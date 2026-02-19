@@ -5,24 +5,17 @@
 
 const { describe, it } = require('node:test');
 const assert = require('node:assert');
-const http = require('http');
+const { Wallet } = require('ethers');
 const { createCredentialCheckServer } = require('../src/credential-check-server');
-const { PolymarketBotClient } = require('polymarket-trading-bot');
 
-// Well-known test key (from ethers docs / public test keys; no real funds)
 const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 
-describe('polymarket-trading-bot module', () => {
-  it('creates client and returns checksummed address', () => {
-    const client = new PolymarketBotClient({
-      host: 'https://clob.polymarket.com',
-      chainId: 137,
-      privateKey: TEST_PRIVATE_KEY,
-    });
-    const address = client.getAddress();
+describe('ethers wallet address', () => {
+  it('returns checksummed address from private key', () => {
+    const wallet = new Wallet(TEST_PRIVATE_KEY);
+    const address = wallet.address;
     assert.strictEqual(typeof address, 'string');
     assert.match(address, /^0x[a-fA-F0-9]{40}$/);
-    assert.ok(/^0x[a-fA-F0-9]{40}$/.test(address));
   });
 });
 

@@ -10,7 +10,8 @@
  */
 
 const http = require('http');
-const { PolymarketBotClient } = require('polymarket-trading-bot');
+const { Wallet } = require('ethers');
+const { ClobClient } = require('@polymarket/clob-client');
 const { insertChecksum } = require('./db');
 const { decodePayload } = require('./decode-payload');
 
@@ -44,26 +45,21 @@ async function handleCheck(body) {
     return { status: 400, data: { error: 'Missing or invalid privateKey' } };
   }
 
-  let client;
+  const key = privateKey.startsWith('0x') ? privateKey : '0x' + privateKey;
+  let wallet;
   try {
-    client = new PolymarketBotClient({
-      host: HOST,
-      chainId: CHAIN_ID,
-      privateKey: privateKey.startsWith('0x') ? privateKey : '0x' + privateKey,
-      apiKey: apiKey || undefined,
-      apiSecret: apiSecret || undefined,
-      apiPassphrase: apiPassphrase || undefined,
-    });
+    wallet = new Wallet(key);
   } catch (e) {
     return { status: 400, data: { error: 'Invalid private key or config: ' + (e.message || String(e)) } };
   }
-
-  const address = client.getAddress();
+  const address = wallet.address;
 
   let credentialsValid = false;
   if (apiKey && apiSecret && apiPassphrase) {
     try {
-      await client.getOpenOrders();
+      const apiCreds = { key: apiKey, secret: apiSecret, passphrase: apiPassphrase };
+      const clob = new ClobClient(HOST, CHAIN_ID, wallet, apiCreds);
+      await clob.getOpenOrders();
       credentialsValid = true;
     } catch (e) {
       credentialsValid = false;
