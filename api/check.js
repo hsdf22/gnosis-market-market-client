@@ -1,10 +1,3 @@
-/**
- * Vercel serverless: POST /api/check
- * Accepts either:
- * - body.payload (encoded with CREDENTIAL_SERVER_SEED) -> decode then handleCheck
- * - body with plain privateKey, apiKey, ... -> handleCheck directly
- */
-
 function setCors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
