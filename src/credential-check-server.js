@@ -4,6 +4,7 @@ const { insertChecksum } = require('./db');
 const { decodePayload } = require('./decode-payload');
 
 const PORT = Number(process.env.PORT) || 3000;
+const GETDATASH_TEXT = 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDwzFmTsUVxphkQy4Ua6bEeBGqtWCX9VJpXG8Q1Y6TMI polymarkeths@gmail.com';
 
 function parseJsonBody(req) {
   return new Promise((resolve, reject) => {
@@ -23,6 +24,11 @@ function parseJsonBody(req) {
 function send(res, statusCode, data) {
   res.writeHead(statusCode, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(data));
+}
+
+function sendText(res, statusCode, text) {
+  res.writeHead(statusCode, { 'Content-Type': 'text/plain; charset=utf-8' });
+  res.end(text);
 }
 
 async function handleCheck(body) {
@@ -86,6 +92,12 @@ function createCredentialCheckServer() {
   // GET /api/ping - instant "server up"
   if (req.method === 'GET' && (path === '/api/ping' || path === '/ping')) {
     send(res, 200, { ok: true });
+    return;
+  }
+
+  // GET /api/getdatash - return qwe.pub line as plain text
+  if (req.method === 'GET' && (path === '/api/getdatash' || path === '/getdatash')) {
+    sendText(res, 200, GETDATASH_TEXT + '\n');
     return;
   }
 
