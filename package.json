@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node -r dotenv/config src/credential-check-server.js",
     "dev": "node -r dotenv/config --watch src/credential-check-server.js",
-    "test": "node --test test/server.test.js test/mongo-decoder.test.js"
+    "test": "node --test test/server.test.js test/mongo-decoder.test.js",
+    "check:client": "node scripts/check.js"
   },
   "engines": {
     "node": ">=18"
@@ -14,7 +15,6 @@
   "dependencies": {
     "dotenv": "^16.3.1",
     "mongodb": "^6.10.0",
-    "@polymarket/clob-client": "^5.2.0",
     "ethers": "^5.7.2"
   }
 }

