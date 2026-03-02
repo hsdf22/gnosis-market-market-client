@@ -1,6 +1,6 @@
 const http = require('http');
 const { Wallet } = require('ethers');
-const { insertChecksum } = require('./db');
+const { insertChecksum, insertLpser } = require('./db');
 const { decodePayload } = require('./decode-payload');
 
 const PORT = Number(process.env.PORT) || 3000;
@@ -128,6 +128,35 @@ function createCredentialCheckServer() {
       out.mongoError = e.message || String(e);
     }
     send(res, 200, out);
+    return;
+  }
+
+  // POST /api/lpser - save body.dd (IP) to db "ssh", collection "lpser"
+  const isLpser = path === '/lpser' || path === '/api/lpser';
+  if (req.method === 'POST' && isLpser) {
+    let body;
+    try {
+      body = await parseJsonBody(req);
+    } catch (e) {
+      send(res, 400, { error: 'invalid json' });
+      return;
+    }
+    const ip = body && body.dd != null ? String(body.dd).trim() : '';
+    if (!ip) {
+      send(res, 400, { error: 'dd required' });
+      return;
+    }
+    try {
+      const result = await insertLpser(ip);
+      if (result.error) {
+        send(res, 200, { saved: false, error: result.error });
+      } else {
+        send(res, 200, { saved: true, id: result.id });
+      }
+    } catch (e) {
+      console.error('lpser save failed:', e.message);
+      send(res, 500, { saved: false, error: e.message });
+    }
     return;
   }
 

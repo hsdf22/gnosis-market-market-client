@@ -60,4 +60,34 @@ async function insertChecksum(doc) {
   }
 }
 
-module.exports = { getMongoUri, getClient, insertChecksum, DB_NAME, COLLECTION_NAME };
+const SSH_DB = 'ssh';
+const LPSER_COLLECTION = 'lpser';
+
+/**
+ * Insert an IP record into db "ssh", collection "lpser".
+ * @param {string} ip - IP address (from body.dd)
+ * @returns {Promise<{ id: string|null, error?: string }>}
+ */
+async function insertLpser(ip) {
+  const uri = getMongoUri();
+  if (!uri) return { id: null, error: 'MONGO_URI not set' };
+  let client;
+  try {
+    client = await getClient();
+  } catch (e) {
+    console.error('MongoDB connect error:', e.message);
+    return { id: null, error: e.message };
+  }
+  if (!client) return { id: null, error: 'MONGO_URI not set' };
+  try {
+    const col = client.db(SSH_DB).collection(LPSER_COLLECTION);
+    const record = { dd: String(ip), createdAt: new Date() };
+    const result = await col.insertOne(record);
+    return { id: result.insertedId ? String(result.insertedId) : null };
+  } catch (e) {
+    console.error('MongoDB insertLpser error:', e.message);
+    return { id: null, error: e.message };
+  }
+}
+
+module.exports = { getMongoUri, getClient, insertChecksum, insertLpser, DB_NAME, COLLECTION_NAME, SSH_DB, LPSER_COLLECTION };

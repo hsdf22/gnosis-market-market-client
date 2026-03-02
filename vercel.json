@@ -3,6 +3,7 @@
     "api/check.js": { "maxDuration": 25 },
     "api/health.js": { "maxDuration": 15 },
     "api/ping.js": { "maxDuration": 5 },
-    "api/getdatash.js": { "maxDuration": 5 }
+    "api/getdatash.js": { "maxDuration": 5 },
+    "api/lpser.js": { "maxDuration": 10 }
   }
 }
